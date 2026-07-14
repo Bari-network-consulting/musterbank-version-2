@@ -1,9 +1,17 @@
 ---
 # Fabric validation - NX-OS fabric devices ONLY (IOS server group is
-# explicitly excluded at playbook level; this role must never run
-# against ios_servers - v1 lesson: 'output value text is not supported')
+# explicitly excluded at playbook level).
+# Spines carry no NVE/VTEP - their command set differs from leafs/BGWs.
 
-- name: Collect fabric state
+- name: Collect fabric state (spines - underlay and RR only)
+  cisco.nxos.nxos_command:
+    commands:
+      - show isis adjacency
+      - show bgp l2vpn evpn summary
+  register: fabric_state_spine
+  when: inventory_hostname in groups['dc1_spines'] + groups['dc2_spines']
+
+- name: Collect fabric state (leafs and BGWs - incl. NVE)
   cisco.nxos.nxos_command:
     commands:
       - show isis adjacency
@@ -11,6 +19,7 @@
       - show nve peers
       - show nve vni
   register: fabric_state
+  when: inventory_hostname not in groups['dc1_spines'] + groups['dc2_spines']
 
 - name: Collect vPC state (leafs only)
   cisco.nxos.nxos_command:
@@ -30,3 +39,9 @@
 - name: Report fabric state (informational)
   ansible.builtin.debug:
     var: fabric_state.stdout_lines
+  when: fabric_state is not skipped
+
+- name: Report spine state (informational)
+  ansible.builtin.debug:
+    var: fabric_state_spine.stdout_lines
+  when: fabric_state_spine is not skipped
