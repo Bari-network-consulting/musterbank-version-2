@@ -2,3 +2,7 @@
 ansible_connection: ansible.netcommon.network_cli
 ansible_network_os: cisco.nxos.nxos
 ansible_command_timeout: 120
+
+# Force password auth: prevents paramiko from failing with
+# 'No authentication methods available' when no SSH key is available.
+ansible_ssh_common_args: '-o PreferredAuthentications=password -o PubkeyAuthentication=no'
