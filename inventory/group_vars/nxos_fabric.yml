@@ -3,6 +3,8 @@ ansible_connection: ansible.netcommon.network_cli
 ansible_network_os: cisco.nxos.nxos
 ansible_command_timeout: 120
 
-# Force password auth: prevents paramiko from failing with
-# 'No authentication methods available' when no SSH key is available.
-ansible_ssh_common_args: '-o PreferredAuthentications=password -o PubkeyAuthentication=no'
+# libssh (ansible-pylibssh) enforces SSH host-key verification even when
+# host_key_checking=False; the AWX EE is ephemeral and has no known_hosts.
+# This disables hostkey verification for the libssh transport specifically.
+ansible_libssh_host_key_checking: false
+ansible_host_key_checking: false
