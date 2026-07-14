@@ -23,14 +23,22 @@ tenants:
     l3vni: 50001
     l3vlan: 3901
     vlans:
-      - {id: 10, vni: 30010, gw: 10.10.10.1/24}
-      - {id: 20, vni: 30020, gw: 10.20.20.1/24}
+      - id: 10
+        vni: 30010
+        gw: 10.10.10.1/24
+      - id: 20
+        vni: 30020
+        gw: 10.20.20.1/24
   - name: TENANT-TRADING
     l3vni: 50002
     l3vlan: 3902
     vlans:
-      - {id: 30, vni: 30030, gw: 10.30.30.1/24}
-      - {id: 40, vni: 30040, gw: 10.40.40.1/24}
+      - id: 30
+        vni: 30030
+        gw: 10.30.30.1/24
+      - id: 40
+        vni: 30040
+        gw: 10.40.40.1/24
 
 # Po1/Po2/orphan VLANs are PER-HOST (pair 1 and pair 2 differ) - see hosts.yml
 
