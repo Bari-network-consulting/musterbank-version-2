@@ -1,0 +1,5 @@
+---
+- name: DC2 Phase 5 - EVPN Multi-Site border gateway
+  hosts: dc2_bgw
+  gather_facts: false
+  roles: [multisite]

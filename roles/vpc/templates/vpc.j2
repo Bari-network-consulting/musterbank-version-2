@@ -1,0 +1,40 @@
+vrf context {{ keepalive_vrf }}
+interface {{ keepalive_parent }}
+  description Keepalive+backup link to vPC peer
+  no switchport
+  mtu {{ jumbo_mtu }}
+  no shutdown
+interface {{ keepalive_parent }}.{{ keepalive_subif }}
+  description vPC keepalive to peer (VRF {{ keepalive_vrf }})
+  encapsulation dot1q {{ keepalive_subif }}
+  vrf member {{ keepalive_vrf }}
+  ip address {{ keepalive_ip }}
+  no shutdown
+interface {{ keepalive_parent }}.{{ backup_subif }}
+  description Underlay backup to vPC peer
+  encapsulation dot1q {{ backup_subif }}
+  mtu {{ jumbo_mtu }}
+  ip address {{ backup_ip }}
+  no shutdown
+vpc domain {{ vpc_domain }}
+  peer-switch
+  role priority {{ vpc_role_priority }}
+  peer-keepalive destination {{ keepalive_peer }} source {{ keepalive_ip.split('/')[0] }} vrf {{ keepalive_vrf }}
+  peer-gateway
+  ip arp synchronize
+  auto-recovery
+  delay restore 150
+{# ---- peer-link: NEVER push explicit MTU to Po500 OR its members (v1 lesson, refined
+     in v2: 'Cannot configure vPC Peer-link since MTU is non-default'). The peer-link
+     is an L2 trunk - it takes jumbo MTU from 'system jumbomtu 9216' (Phase 0). ---- #}
+{% for m in peer_link_members %}
+interface {{ m }}
+  description vPC peer-link member
+  channel-group {{ peer_link_id }} mode active
+  no shutdown
+{% endfor %}
+interface port-channel{{ peer_link_id }}
+  description vPC peer-link
+  switchport mode trunk
+  spanning-tree port type network
+  vpc peer-link

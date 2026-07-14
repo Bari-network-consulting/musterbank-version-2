@@ -1,0 +1,14 @@
+---
+# Phase 0 - per-role feature baseline (NX-OS fabric devices ONLY;
+# server hosts are handled by the dedicated servers role/playbooks)
+
+- name: Check current jumbo MTU setting
+  cisco.nxos.nxos_command:
+    commands:
+      - show running-config | include "system jumbomtu"
+  register: jumbo_check
+
+- name: Apply per-role feature baseline and base settings
+  cisco.nxos.nxos_config:
+    src: base_features.j2
+    save_when: changed

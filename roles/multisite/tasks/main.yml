@@ -1,0 +1,25 @@
+---
+# Phase 5 - EVPN Multi-Site DCI (border gateways only)
+# NOTE (v1 finding): BFD is non-functional on 9300v virtual DCI links -
+# convergence relies on ECMP over dual /31s + BGP timers 3/9
+# (~9s failover vs ~178s unprotected baseline).
+
+- name: NVE pre-flight - attempt isolated 'interface nve1' instantiation (W8/W10 gate)
+  cisco.nxos.nxos_config:
+    lines:
+      - interface nve1
+  register: nve_preflight
+  ignore_errors: true
+
+- name: NVE pre-flight - fail fast with W-series remedy when instantiation is rejected
+  ansible.builtin.fail:
+    msg: >-
+      W-SERIES PLATFORM FAULT on {{ inventory_hostname }}: 'interface nve1' rejected.
+      Apply W8/W8-b remedy (feature nv overlay + nv overlay evpn bounce, 180s hold-down)
+      or W9-hard (copy run start + reload), then re-run this phase.
+  when: nve_preflight is failed
+
+- name: Apply Multi-Site border-gateway configuration
+  cisco.nxos.nxos_config:
+    src: multisite.j2
+    save_when: changed

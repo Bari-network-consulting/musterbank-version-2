@@ -1,0 +1,46 @@
+---
+# Restore a device's running-config from backups/<inventory_hostname>.cfg
+#
+# Honest semantic note: this is a MERGE push of the saved config, not a true
+# "replace running-config with this file" operation. The cisco.nxos.nxos_config
+# module's replace: config mode requires a checkpoint file that lives on the
+# device (loaded via nxos_file_copy), not a text file on the control node, so
+# true replace-from-control-node isn't supported. In practice this restore is
+# still effective for our fabric because the deploy templates own the same
+# config objects: pushing the backup re-creates anything the templates would
+# have created. Objects added OUTSIDE the templates (manual experiments) will
+# NOT be removed by a restore - reach for reset+deploy for that case.
+#
+# Runs only against devices whose backup file actually exists on the awx host.
+
+- name: Locate backup file for this host
+  ansible.builtin.set_fact:
+    backup_file: "{{ playbook_dir }}/../backups/{{ inventory_hostname }}.cfg"
+
+- name: Verify backup file exists
+  ansible.builtin.stat:
+    path: "{{ backup_file }}"
+  delegate_to: localhost
+  register: backup_stat
+
+- name: Skip host cleanly if no backup is on disk
+  ansible.builtin.meta: end_host
+  when: not backup_stat.stat.exists
+
+- name: Report which backup will be pushed
+  ansible.builtin.debug:
+    msg: "Restoring {{ inventory_hostname }} from {{ backup_file }} ({{ backup_stat.stat.size }} bytes)"
+
+# ---- NX-OS branch ----------------------------------------------------------
+- name: Restore NX-OS running-config (merge from backup)
+  cisco.nxos.nxos_config:
+    src: "{{ backup_file }}"
+    save_when: changed
+  when: ansible_network_os == 'cisco.nxos.nxos'
+
+# ---- IOS branch (IOL servers) ---------------------------------------------
+- name: Restore IOS running-config (merge from backup)
+  cisco.ios.ios_config:
+    src: "{{ backup_file }}"
+    save_when: changed
+  when: ansible_network_os == 'cisco.ios.ios'

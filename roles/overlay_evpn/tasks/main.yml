@@ -1,0 +1,59 @@
+---
+# Phase 4 - iBGP EVPN overlay (spine RRs first, then leafs / BGW peering)
+
+- name: Apply spine route-reflector configuration
+  cisco.nxos.nxos_config:
+    src: overlay_spine_rr.j2
+    save_when: changed
+  when: inventory_hostname in groups['dc1_spines'] + groups['dc2_spines']
+
+# ---------------------------------------------------------------------
+# W8/W10 pre-flight gate: on the 9300v, 'show feature' and even sysmgr
+# can both look healthy while the NVE interface type is not registered
+# with the CLI parser ('Invalid interface format'). We attempt the NVE
+# instantiation FIRST, in isolation, so a platform failure produces a
+# clear, actionable error instead of aborting a large config push.
+# ---------------------------------------------------------------------
+- name: NVE pre-flight - attempt isolated 'interface nve1' instantiation (W8/W10 gate)
+  cisco.nxos.nxos_config:
+    lines:
+      - interface nve1
+  register: nve_preflight
+  ignore_errors: true
+  when: inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs'] + groups['dc1_bgw'] + groups['dc2_bgw']
+
+- name: NVE pre-flight - fail fast with W-series remedy when instantiation is rejected
+  ansible.builtin.fail:
+    msg: >-
+      W-SERIES PLATFORM FAULT on {{ inventory_hostname }} (image {{ nxos_image | default('?') }}):
+      'interface nve1' was rejected by the CLI parser although 'feature nv overlay'
+      is enabled. Remedy (W8/W8-b): 'no feature nv overlay' + 'no nv overlay evpn',
+      re-enable both (observe up to 180s hold-down), retry. If it persists:
+      'copy run start' + 'reload' (W9-hard). Record the occurrence in the W-series log.
+  when:
+    - inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs'] + groups['dc1_bgw'] + groups['dc2_bgw']
+    - nve_preflight is failed
+
+- name: Check ARP suppression TCAM carving (arp_tcam gate)
+  cisco.nxos.nxos_command:
+    commands:
+      - show hardware access-list tcam region | include arp-ether
+  register: tcam_state
+  when: inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs']
+
+- name: Determine whether suppress-arp can be pushed
+  ansible.builtin.set_fact:
+    arp_tcam_carved: "{{ tcam_state.stdout[0] | regex_search('arp-ether\\s+([1-9][0-9]*)') is not none }}"
+  when: inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs']
+
+- name: Apply server-leaf VXLAN EVPN overlay
+  cisco.nxos.nxos_config:
+    src: overlay_leaf.j2
+    save_when: changed
+  when: inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs']
+
+- name: Apply border-gateway BGP peering (VNIs/NVE follow in the multisite role)
+  cisco.nxos.nxos_config:
+    src: overlay_bgw.j2
+    save_when: changed
+  when: inventory_hostname in groups['dc1_bgw'] + groups['dc2_bgw']

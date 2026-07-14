@@ -1,0 +1,6 @@
+---
+site_name: "DC2 Nuernberg"
+site_id: 2
+bgp_asn: 65002
+remote_bgp_asn: 65001
+spine_rr_ips: [10.2.0.1, 10.2.0.2]

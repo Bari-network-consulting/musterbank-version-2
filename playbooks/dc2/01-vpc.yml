@@ -1,0 +1,5 @@
+---
+- name: DC2 Phase 1 - vPC domains
+  hosts: dc2_leafs
+  gather_facts: false
+  roles: [vpc]

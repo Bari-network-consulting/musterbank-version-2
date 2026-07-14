@@ -1,0 +1,83 @@
+evpn multisite border-gateway {{ site_id }}
+  delay-restore time 300
+interface loopback100
+  description Multi-Site VIP
+  ip address {{ loopback100 }}/32
+  ip router isis UNDERLAY
+{% for t in tenants %}
+{% for v in t.vlans %}
+vlan {{ v.id }}
+  name {{ t.name }}-V{{ v.id }}
+  vn-segment {{ v.vni }}
+{% endfor %}
+vlan {{ t.l3vlan }}
+  name {{ t.name }}-L3VNI
+  vn-segment {{ t.l3vni }}
+vrf context {{ t.name }}
+  vni {{ t.l3vni }}
+  rd auto
+  address-family ipv4 unicast
+    route-target both auto
+    route-target both auto evpn
+interface Vlan{{ t.l3vlan }}
+  no shutdown
+  vrf member {{ t.name }}
+  ip forward
+{% endfor %}
+{% for l in dci_links %}
+interface {{ l.intf }}
+  description DCI link to remote BGW
+  no switchport
+  mtu {{ jumbo_mtu }}
+  ip address {{ l.ip }}
+  evpn multisite dci-tracking
+  no shutdown
+{% endfor %}
+{% for u in fabric_uplinks %}
+interface {{ u }}
+  evpn multisite fabric-tracking
+{% endfor %}
+interface nve1
+  no shutdown
+  host-reachability protocol bgp
+  source-interface loopback1
+  multisite border-gateway interface loopback100
+{% for t in tenants %}
+{% for v in t.vlans %}
+  member vni {{ v.vni }}
+    multisite ingress-replication
+    ingress-replication protocol bgp
+{% endfor %}
+  member vni {{ t.l3vni }} associate-vrf
+{% endfor %}
+{% for t in tenants %}
+{% for v in t.vlans %}
+evpn
+  vni {{ v.vni }} l2
+    rd auto
+    route-target import auto
+    route-target export auto
+{% endfor %}
+{% endfor %}
+router bgp {{ bgp_asn }}
+  address-family ipv4 unicast
+    network {{ loopback100 }}/32
+    network {{ loopback1 }}/32
+    maximum-paths 2
+{% for l in dci_links %}
+  neighbor {{ l.peer }}
+    remote-as {{ remote_bgp_asn }}
+    description eBGP DCI underlay+overlay to remote BGW
+    peer-type fabric-external
+    timers 3 9
+    address-family ipv4 unicast
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+      rewrite-evpn-rt-asn
+{% endfor %}
+{% for t in tenants %}
+  vrf {{ t.name }}
+    address-family ipv4 unicast
+      advertise l2vpn evpn
+{% endfor %}

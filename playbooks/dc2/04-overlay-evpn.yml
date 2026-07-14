@@ -1,0 +1,10 @@
+---
+- name: DC2 Phase 4 - EVPN overlay (spine RRs first)
+  hosts: dc2_spines
+  gather_facts: false
+  roles: [overlay_evpn]
+
+- name: DC2 Phase 4 - EVPN overlay (leaves and BGW peering)
+  hosts: dc2_leafs:dc2_bgw
+  gather_facts: false
+  roles: [overlay_evpn]

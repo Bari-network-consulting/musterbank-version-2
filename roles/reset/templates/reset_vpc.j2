@@ -1,0 +1,11 @@
+no interface port-channel1
+no interface port-channel2
+no vpc domain {{ vpc_domain }}
+no interface port-channel{{ peer_link_id }}
+no interface {{ keepalive_parent }}.{{ keepalive_subif }}
+no interface {{ keepalive_parent }}.{{ backup_subif }}
+no vrf context {{ keepalive_vrf }}
+default interface {{ keepalive_parent }}
+{% for m in peer_link_members %}
+default interface {{ m }}
+{% endfor %}

@@ -1,0 +1,5 @@
+---
+- name: Backup all device configurations
+  hosts: nxos_fabric:ios_servers
+  gather_facts: false
+  roles: [backup]

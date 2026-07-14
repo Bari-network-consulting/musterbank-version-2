@@ -1,0 +1,5 @@
+---
+- name: DC2 Phase 2 - access layer
+  hosts: dc2_leafs
+  gather_facts: false
+  roles: [access_layer]

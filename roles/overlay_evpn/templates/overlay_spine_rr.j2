@@ -1,0 +1,16 @@
+route-map PERMIT-ALL permit 10
+router bgp {{ bgp_asn }}
+  router-id {{ loopback0 }}
+  address-family l2vpn evpn
+    retain route-target all
+{% set client_hosts = (groups['dc1_leafs'] + groups['dc1_bgw']) if site_id == 1 else (groups['dc2_leafs'] + groups['dc2_bgw']) %}
+{% for h in client_hosts %}
+  neighbor {{ hostvars[h].loopback0 }}
+    remote-as {{ bgp_asn }}
+    description {{ h }}
+    update-source loopback0
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+      route-reflector-client
+{% endfor %}

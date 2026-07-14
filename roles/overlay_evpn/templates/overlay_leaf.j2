@@ -1,0 +1,39 @@
+router bgp {{ bgp_asn }}
+  router-id {{ loopback0 }}
+{% for rr in spine_rr_ips %}
+  neighbor {{ rr }}
+    remote-as {{ bgp_asn }}
+    description Spine RR
+    update-source loopback0
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+{% endfor %}
+{% for t in tenants %}
+  vrf {{ t.name }}
+    address-family ipv4 unicast
+      advertise l2vpn evpn
+{% endfor %}
+interface nve1
+  no shutdown
+  host-reachability protocol bgp
+  source-interface loopback1
+{% for t in tenants %}
+{% for v in t.vlans %}
+  member vni {{ v.vni }}
+{% if arp_tcam_carved | default(false) %}
+    suppress-arp
+{% endif %}
+    ingress-replication protocol bgp
+{% endfor %}
+  member vni {{ t.l3vni }} associate-vrf
+{% endfor %}
+{% for t in tenants %}
+{% for v in t.vlans %}
+evpn
+  vni {{ v.vni }} l2
+    rd auto
+    route-target import auto
+    route-target export auto
+{% endfor %}
+{% endfor %}

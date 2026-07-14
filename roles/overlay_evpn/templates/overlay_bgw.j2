@@ -1,0 +1,11 @@
+router bgp {{ bgp_asn }}
+  router-id {{ loopback0 }}
+{% for rr in spine_rr_ips %}
+  neighbor {{ rr }}
+    remote-as {{ bgp_asn }}
+    description Spine RR (fabric side)
+    update-source loopback0
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+{% endfor %}

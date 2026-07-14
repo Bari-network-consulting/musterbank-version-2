@@ -1,0 +1,38 @@
+---
+# Restore devices from files in backups/<inventory_hostname>.cfg.
+# ---------------------------------------------------------------------------
+# Restores by re-pushing the backup content in MERGE mode (not true
+# replace-config - see roles/restore/tasks/main.yml for the honest semantic).
+# Effective for undoing template-owned drift; NOT effective for removing
+# objects that were added manually outside the templates - reach for
+# reset-dcX-fabric.yml then deploy-dcX.yml in that case.
+# ---------------------------------------------------------------------------
+# Scope selection: pass -e "target=<group_or_host>" to limit; default is
+# every device that has a backup file on disk.
+#
+# Common invocations:
+#   ansible-playbook playbooks/restore-configs.yml -k
+#   ansible-playbook playbooks/restore-configs.yml -k -e target=dc1_fabric
+#   ansible-playbook playbooks/restore-configs.yml -k -e target=F-LEAF-01
+#   ansible-playbook playbooks/restore-configs.yml -k -e target=nxos_fabric
+# ---------------------------------------------------------------------------
+
+- name: Confirm restore
+  hosts: localhost
+  gather_facts: false
+  vars_prompt:
+    - name: confirm
+      prompt: |
+        This RESTORES device configurations from backups/ by merging the saved
+        config back onto each target. Type 'RESTORE' to continue
+      private: false
+  tasks:
+    - name: Abort unless confirmed
+      ansible.builtin.assert:
+        that: confirm == 'RESTORE'
+        fail_msg: "Confirmation string mismatch - aborting."
+
+- name: Restore configurations from backups/
+  hosts: "{{ target | default('nxos_fabric:ios_servers') }}"
+  gather_facts: false
+  roles: [restore]

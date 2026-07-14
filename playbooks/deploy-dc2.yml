@@ -1,0 +1,7 @@
+---
+- import_playbook: dc2/00-base-features.yml
+- import_playbook: dc2/01-vpc.yml
+- import_playbook: dc2/02-access-layer.yml
+- import_playbook: dc2/03-underlay-isis.yml
+- import_playbook: dc2/04-overlay-evpn.yml
+- import_playbook: dc2/05-multisite.yml

@@ -1,0 +1,7 @@
+---
+# DC2 server farm - configures the LEAF PORTS ONLY (E1/3 Po1, E1/4 Po2, E1/7)
+# per the v2 server sheet. Server OS / IOL config is not touched here.
+- name: DC2 server-farm leaf ports
+  hosts: dc2_leafs
+  gather_facts: false
+  roles: [server_ports]

@@ -1,0 +1,29 @@
+vlan {{ srv_vlan }}
+{% if srv_mode | default('single') == 'dual' %}
+interface Port-channel1
+ switchport
+ switchport mode access
+ switchport access vlan {{ srv_vlan }}
+interface Ethernet0/0
+ switchport
+ switchport mode access
+ switchport access vlan {{ srv_vlan }}
+ channel-group 1 mode active
+ no shutdown
+interface Ethernet0/1
+ switchport
+ switchport mode access
+ switchport access vlan {{ srv_vlan }}
+ channel-group 1 mode active
+ no shutdown
+{% else %}
+interface Ethernet0/0
+ switchport
+ switchport mode access
+ switchport access vlan {{ srv_vlan }}
+ no shutdown
+{% endif %}
+interface Vlan{{ srv_vlan }}
+ ip address {{ srv_ip }} 255.255.255.0
+ no shutdown
+ip default-gateway {{ srv_gw }}

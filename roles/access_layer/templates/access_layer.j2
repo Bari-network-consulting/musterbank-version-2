@@ -1,0 +1,34 @@
+{# ---- VLANs and VNI mappings for both tenants ---- #}
+{% for t in tenants %}
+{% for v in t.vlans %}
+vlan {{ v.id }}
+  name {{ t.name }}-V{{ v.id }}
+  vn-segment {{ v.vni }}
+{% endfor %}
+vlan {{ t.l3vlan }}
+  name {{ t.name }}-L3VNI
+  vn-segment {{ t.l3vni }}
+{% endfor %}
+{# ---- Tenant VRFs (hard multi-tenancy) ---- #}
+{% for t in tenants %}
+vrf context {{ t.name }}
+  vni {{ t.l3vni }}
+  rd auto
+  address-family ipv4 unicast
+    route-target both auto
+    route-target both auto evpn
+{% endfor %}
+{# ---- Anycast gateway SVIs ---- #}
+{% for t in tenants %}
+{% for v in t.vlans %}
+interface Vlan{{ v.id }}
+  no shutdown
+  vrf member {{ t.name }}
+  ip address {{ v.gw }}
+  fabric forwarding mode anycast-gateway
+{% endfor %}
+interface Vlan{{ t.l3vlan }}
+  no shutdown
+  vrf member {{ t.name }}
+  ip forward
+{% endfor %}

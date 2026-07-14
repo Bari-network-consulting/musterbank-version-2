@@ -1,0 +1,33 @@
+{# Per-pair VLAN plan (v2 server sheet):
+   pair 1: Po1=20 (IOL), Po2=30 (Win), orphan odd=10 / even=40
+   pair 2: Po1=30 (IOL), Po2=10 (Win), orphan odd=20 / even=40
+   NO hidden-default commands (no bare 'switchport', no 'switchport mode
+   access', no 'no shutdown') - they replay forever and fail on bundled
+   members. VLAN on bundled Po only; members inherit. #}
+{% if not po1_bundled %}
+interface {{ port_dual_iol }}
+  description Dual-homed IOL server (vPC Po1, VLAN {{ po1_vlan }})
+  switchport access vlan {{ po1_vlan }}
+  channel-group 1 mode active
+{% else %}
+interface {{ port_dual_iol }}
+  description Dual-homed IOL server (vPC Po1, VLAN {{ po1_vlan }})
+{% endif %}
+interface port-channel1
+  switchport access vlan {{ po1_vlan }}
+  vpc 1
+{% if not po2_bundled %}
+interface {{ port_dual_win }}
+  description Dual-homed Windows server (vPC Po2, VLAN {{ po2_vlan }})
+  switchport access vlan {{ po2_vlan }}
+  channel-group 2 mode active
+{% else %}
+interface {{ port_dual_win }}
+  description Dual-homed Windows server (vPC Po2, VLAN {{ po2_vlan }})
+{% endif %}
+interface port-channel2
+  switchport access vlan {{ po2_vlan }}
+  vpc 2
+interface {{ port_orphan }}
+  description Single-homed IOL server (orphan port, VLAN {{ orphan_vlan }})
+  switchport access vlan {{ orphan_vlan }}

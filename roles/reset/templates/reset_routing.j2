@@ -1,0 +1,6 @@
+no router bgp {{ bgp_asn }}
+no router isis UNDERLAY
+no interface loopback0
+{% if loopback1 is defined %}
+no interface loopback1
+{% endif %}

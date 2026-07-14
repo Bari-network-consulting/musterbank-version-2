@@ -1,0 +1,21 @@
+---
+- name: Confirm destructive action
+  hosts: localhost
+  gather_facts: false
+  vars_prompt:
+    - name: confirm
+      prompt: "This ERASES the DC1 fabric configuration. Type 'RESET-DC1' to continue"
+      private: false
+  tasks:
+    - name: Abort unless confirmed
+      ansible.builtin.assert:
+        that: confirm == 'RESET-DC1'
+        fail_msg: "Confirmation string mismatch - aborting."
+    - name: Persist confirmation for the reset play
+      ansible.builtin.set_fact:
+        reset_confirmed: true
+
+- name: Reset DC1 fabric
+  hosts: dc1_fabric        # NX-OS fabric ONLY (v1 bug: servers were included)
+  gather_facts: false
+  roles: [reset]

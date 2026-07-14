@@ -1,0 +1,6 @@
+---
+# NX-OS fabric devices ONLY - the IOS server group is explicitly excluded.
+- name: Validate dual-DC fabric
+  hosts: nxos_fabric:!ios_servers
+  gather_facts: false
+  roles: [validate]

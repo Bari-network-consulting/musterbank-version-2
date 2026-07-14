@@ -1,0 +1,10 @@
+---
+- name: DC2 Phase 3 - IS-IS underlay (spines first)
+  hosts: dc2_spines
+  gather_facts: false
+  roles: [underlay_isis]
+
+- name: DC2 Phase 3 - IS-IS underlay (leaves and BGW)
+  hosts: dc2_leafs:dc2_bgw
+  gather_facts: false
+  roles: [underlay_isis]

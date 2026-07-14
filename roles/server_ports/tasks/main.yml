@@ -1,0 +1,31 @@
+---
+# Server-farm LEAF PORTS (leaf side only). State-aware: on fresh builds the
+# member VLAN is set before channel-group (compatibility check); on replay
+# against bundled members, VLAN changes go to the port-channel ONLY (NX-OS
+# propagates Po config to members; member-level mode/vlan cmds are rejected).
+
+- name: Ensure server-facing interfaces are admin-up (idempotent)
+  cisco.nxos.nxos_interfaces:
+    config:
+      - {name: "{{ item }}", enabled: true}
+    state: merged
+  loop:
+    - "{{ port_dual_iol }}"
+    - "{{ port_dual_win }}"
+    - "{{ port_orphan }}"
+
+- name: Gather port-channel state (bundled-member replay safety)
+  cisco.nxos.nxos_command:
+    commands:
+      - show port-channel summary
+  register: po_state
+
+- name: Determine which server port-channels already exist
+  ansible.builtin.set_fact:
+    po1_bundled: "{{ 'Po1(' in po_state.stdout[0] }}"
+    po2_bundled: "{{ 'Po2(' in po_state.stdout[0] }}"
+
+- name: Apply server-facing access ports (Po1/Po2 vPCs and orphan port)
+  cisco.nxos.nxos_config:
+    src: server_ports.j2
+    save_when: changed

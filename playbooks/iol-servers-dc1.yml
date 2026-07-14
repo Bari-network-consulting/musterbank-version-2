@@ -1,0 +1,7 @@
+---
+# OPTIONAL: bootstrap the DC1 IOL servers themselves (cisco.ios).
+# Dual-homed IOLs: SRV2 and SRV6 - pass srv_mode=dual via -e or host var.
+- name: DC1 IOL server bootstrap (optional)
+  hosts: dc1_servers
+  gather_facts: false
+  roles: [servers]

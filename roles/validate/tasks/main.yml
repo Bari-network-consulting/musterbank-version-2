@@ -1,0 +1,32 @@
+---
+# Fabric validation - NX-OS fabric devices ONLY (IOS server group is
+# explicitly excluded at playbook level; this role must never run
+# against ios_servers - v1 lesson: 'output value text is not supported')
+
+- name: Collect fabric state
+  cisco.nxos.nxos_command:
+    commands:
+      - show isis adjacency
+      - show bgp l2vpn evpn summary
+      - show nve peers
+      - show nve vni
+  register: fabric_state
+
+- name: Collect vPC state (leafs only)
+  cisco.nxos.nxos_command:
+    commands:
+      - show vpc
+  register: vpc_state
+  when: inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs']
+
+- name: Assert vPC peer is alive (leafs only)
+  ansible.builtin.assert:
+    that:
+      - "'peer is alive' in vpc_state.stdout[0]"
+    fail_msg: "vPC peer NOT alive on {{ inventory_hostname }} - check keepalive path (E1/8 parent admin state!) and Po{{ peer_link_id }}"
+    success_msg: "vPC healthy on {{ inventory_hostname }}"
+  when: inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs']
+
+- name: Report fabric state (informational)
+  ansible.builtin.debug:
+    var: fabric_state.stdout_lines

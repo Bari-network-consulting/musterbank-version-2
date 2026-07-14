@@ -1,0 +1,29 @@
+{% for t in tenants %}
+{% for v in t.vlans %}
+no interface Vlan{{ v.id }}
+no vlan {{ v.id }}
+{% endfor %}
+no interface Vlan{{ t.l3vlan }}
+no vlan {{ t.l3vlan }}
+no vrf context {{ t.name }}
+{% endfor %}
+{% if inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs'] %}
+default interface {{ port_dual_iol }}
+default interface {{ port_dual_win }}
+default interface {{ port_orphan }}
+{% endif %}
+{% if inventory_hostname in groups['dc1_spines'] + groups['dc2_spines'] %}
+{% for l in spine_downlinks %}
+default interface {{ l }}
+{% endfor %}
+{% else %}
+{% for l in fabric_uplinks %}
+default interface {{ l }}
+{% endfor %}
+{% endif %}
+{% if dci_links is defined %}
+{% for l in dci_links %}
+default interface {{ l.intf }}
+{% endfor %}
+{% endif %}
+no system jumbomtu {{ jumbo_mtu }}

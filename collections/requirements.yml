@@ -1,0 +1,13 @@
+---
+# Ansible Galaxy collections required by musterbank-version-2.
+# AWX auto-installs these on project sync (place this file at
+# collections/requirements.yml in the repo root).
+collections:
+  - name: cisco.nxos
+    version: ">=5.0.0"
+  - name: cisco.ios
+    version: ">=5.0.0"
+  - name: ansible.netcommon
+    version: ">=6.0.0"
+  - name: ansible.utils
+    version: ">=4.0.0"

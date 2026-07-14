@@ -1,0 +1,38 @@
+---
+# ============ Muster Bank AG - Version 2 - global data model ============
+anycast_gateway_mac: "0000.2222.3333"
+jumbo_mtu: 9216
+peer_link_id: 500
+peer_link_members: [Ethernet1/5, Ethernet1/6]
+keepalive_parent: Ethernet1/8
+keepalive_subif: 99            # E1/8.99  vPC keepalive (VRF VPC-KEEPALIVE)
+backup_subif: 98               # E1/8.98  IS-IS underlay backup
+keepalive_vrf: VPC-KEEPALIVE
+fabric_uplinks: [Ethernet1/1, Ethernet1/2]
+
+# Server-facing interfaces on every server leaf
+port_dual_iol: Ethernet1/3     # vPC Po1 - dual-homed IOL server
+port_dual_win: Ethernet1/4     # vPC Po2 - dual-homed Windows server
+port_orphan:   Ethernet1/7     # single-homed IOL server (orphan port)
+
+# ============ Tenants (identical to lab version 1) ============
+# Server IP convention: 10.<VLAN>.<VLAN>.x/24, gateway 10.<VLAN>.<VLAN>.1
+# (.11/.12 in DC1, .211/.212 in DC2)
+tenants:
+  - name: TENANT-PAYMENT
+    l3vni: 50001
+    l3vlan: 3901
+    vlans:
+      - {id: 10, vni: 30010, gw: 10.10.10.1/24}
+      - {id: 20, vni: 30020, gw: 10.20.20.1/24}
+  - name: TENANT-TRADING
+    l3vni: 50002
+    l3vlan: 3902
+    vlans:
+      - {id: 30, vni: 30030, gw: 10.30.30.1/24}
+      - {id: 40, vni: 30040, gw: 10.40.40.1/24}
+
+# Po1/Po2/orphan VLANs are PER-HOST (pair 1 and pair 2 differ) - see hosts.yml
+
+# Spine fabric-facing ports: E1/1-4 to the four leafs, E1/5 to the BGW
+spine_downlinks: [Ethernet1/1, Ethernet1/2, Ethernet1/3, Ethernet1/4, Ethernet1/5]

@@ -1,0 +1,71 @@
+---
+# Fabric reset - SPLIT-TASK design (v1 lesson: a single rejected line,
+# e.g. 'no interface nve1' on a host where NVE never instantiated,
+# aborted the whole monolithic removal task and left the host fully
+# configured. Each removal domain is now its own task, and the NVE
+# removal is gated on actual presence in the running config.)
+
+- name: Gather running-config interface list
+  cisco.nxos.nxos_command:
+    commands:
+      - show running-config | include "^interface"
+  register: run_intfs
+
+# --- 1. NVE / overlay (gated: only when nve1 actually exists) ---
+- name: Remove NVE interface (only when present)
+  cisco.nxos.nxos_config:
+    lines:
+      - no interface nve1
+  when: "'interface nve1' in run_intfs.stdout[0]"
+  ignore_errors: true
+
+- name: Remove EVPN and multisite control plane
+  cisco.nxos.nxos_config:
+    src: reset_overlay.j2
+  when: inventory_hostname not in groups['dc1_spines'] + groups['dc2_spines']
+  ignore_errors: true
+
+# --- 2. Routing ---
+- name: Remove BGP and IS-IS processes
+  cisco.nxos.nxos_config:
+    src: reset_routing.j2
+  ignore_errors: true
+
+# --- 3. vPC (destructive by design here - 'no vpc domain' removes, not shuts) ---
+- name: Remove vPC domain, port-channels and subinterfaces (leafs only)
+  cisco.nxos.nxos_config:
+    src: reset_vpc.j2
+  when: inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs']
+  ignore_errors: true
+
+# --- 4. Access layer / interfaces back to defaults ---
+- name: Default all fabric and server interfaces, remove SVIs/VLANs/VRFs
+  cisco.nxos.nxos_config:
+    src: reset_access.j2
+  ignore_errors: true
+
+# --- 5. Features last ('no feature fabric forwarding' also clears
+#        anycast-gateway-mac - never push 'no anycast-gateway-mac', v1 lesson) ---
+- name: Disable features
+  cisco.nxos.nxos_config:
+    src: reset_features.j2
+  ignore_errors: true
+
+- name: Save the cleaned configuration
+  cisco.nxos.nxos_command:
+    commands:
+      - command: copy running-config startup-config
+        prompt: '\?'
+        answer: "y"
+  ignore_errors: true
+
+# --- 6. Verification ---
+- name: Confirm remaining configuration is baseline
+  cisco.nxos.nxos_command:
+    commands:
+      - show running-config | include "feature|router|ip router"
+  register: leftover
+
+- name: Show leftover (informational)
+  ansible.builtin.debug:
+    var: leftover.stdout_lines

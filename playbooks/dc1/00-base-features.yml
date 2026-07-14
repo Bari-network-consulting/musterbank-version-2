@@ -1,0 +1,7 @@
+---
+# HOST SCOPING FIX (v1 bug): this play targets dc1_fabric ONLY.
+# The IOS server farm (dc1_servers) is bootstrapped by servers-dc1.yml.
+- name: DC1 Phase 0 - base features
+  hosts: dc1_fabric
+  gather_facts: false
+  roles: [base_features]

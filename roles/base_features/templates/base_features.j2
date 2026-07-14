@@ -1,0 +1,32 @@
+{# ---- jumbo MTU: check-before-push (v1 idempotency lesson) ---- #}
+{% if 'system jumbomtu ' ~ jumbo_mtu not in jumbo_check.stdout[0] %}
+system jumbomtu {{ jumbo_mtu }}
+{% endif %}
+{% if inventory_hostname in groups['dc1_spines'] + groups['dc2_spines'] %}
+{# spines: no VTEP/feature nv overlay, but 'nv overlay evpn' is required to
+   unlock 'address-family l2vpn evpn' under router bgp (RR role) #}
+nv overlay evpn
+feature bgp
+feature isis
+{% elif inventory_hostname in groups['dc1_bgw'] + groups['dc2_bgw'] %}
+{# W5: BGWs are standalone - feature vpc MUST NOT be enabled here #}
+nv overlay evpn
+feature bgp
+feature isis
+feature interface-vlan
+feature vn-segment-vlan-based
+feature fabric forwarding
+feature nv overlay
+fabric forwarding anycast-gateway-mac {{ anycast_gateway_mac }}
+{% else %}
+nv overlay evpn
+feature bgp
+feature isis
+feature vpc
+feature lacp
+feature interface-vlan
+feature vn-segment-vlan-based
+feature fabric forwarding
+feature nv overlay
+fabric forwarding anycast-gateway-mac {{ anycast_gateway_mac }}
+{% endif %}

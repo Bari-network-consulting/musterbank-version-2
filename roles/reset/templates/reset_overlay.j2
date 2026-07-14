@@ -1,0 +1,11 @@
+{% if inventory_hostname in groups['dc1_bgw'] + groups['dc2_bgw'] %}
+no evpn multisite border-gateway {{ site_id }}
+no interface loopback100
+{% endif %}
+evpn
+{% for t in tenants %}
+{% for v in t.vlans %}
+  no vni {{ v.vni }} l2
+{% endfor %}
+{% endfor %}
+no nv overlay evpn

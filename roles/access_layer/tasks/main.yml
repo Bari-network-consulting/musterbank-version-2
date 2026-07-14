@@ -1,0 +1,8 @@
+---
+# Phase 2 - access layer (server leafs only)
+# Server-facing PORTS moved to the server_ports role (servers-dcX.yml)
+
+- name: Apply VLANs, tenant VRFs, anycast-gateway SVIs and server ports
+  cisco.nxos.nxos_config:
+    src: access_layer.j2
+    save_when: changed

@@ -1,0 +1,15 @@
+{% if inventory_hostname in groups['dc1_spines'] + groups['dc2_spines'] %}
+no feature bgp
+no feature isis
+{% else %}
+no feature nv overlay
+no feature fabric forwarding
+no feature vn-segment-vlan-based
+no feature interface-vlan
+{% if inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs'] %}
+no feature vpc
+no feature lacp
+{% endif %}
+no feature bgp
+no feature isis
+{% endif %}

@@ -1,0 +1,8 @@
+---
+# IOL (cisco.ios L2 image) server-farm bootstrap.
+# Windows servers (SRV3/7/23/27) are configured manually - not in inventory.
+
+- name: Apply server VLAN, uplink(s), SVI and default gateway
+  cisco.ios.ios_config:
+    src: server.j2
+    save_when: changed

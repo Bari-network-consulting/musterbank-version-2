@@ -1,0 +1,35 @@
+router isis UNDERLAY
+  net {{ isis_net }}
+  is-type level-2
+  set-overload-bit on-startup 120
+interface loopback0
+  description Router-ID / IS-IS
+  ip address {{ loopback0 }}/32
+  ip router isis UNDERLAY
+{% if loopback1 is defined %}
+interface loopback1
+  description VTEP source
+  ip address {{ loopback1 }}/32
+{% if vtep_secondary is defined %}
+  ip address {{ vtep_secondary }}/32 secondary
+{% endif %}
+  ip router isis UNDERLAY
+{% endif %}
+{% for link in underlay_links %}
+interface {{ link }}
+  description IS-IS underlay fabric link
+{# state-aware 'no switchport' - only when the port is still L2 (v1 idempotency lesson) #}
+{% if link.replace('Ethernet','Eth') ~ ' ' in intf_brief.stdout[0] and 'routed' not in (intf_brief.stdout[0].split(link.replace('Ethernet','Eth'))[1].split('\n')[0]) %}
+  no switchport
+{% endif %}
+  mtu {{ jumbo_mtu }}
+  medium p2p
+  ip unnumbered loopback0
+  ip router isis UNDERLAY
+  no shutdown
+{% endfor %}
+{% if backup_ip is defined %}
+{# E1/8.98 underlay backup subif joins IS-IS (physical subif design - peer-link SVI abandoned, v1 W-finding) #}
+interface {{ keepalive_parent }}.{{ backup_subif }}
+  ip router isis UNDERLAY
+{% endif %}

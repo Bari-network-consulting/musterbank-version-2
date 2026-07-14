@@ -1,0 +1,18 @@
+---
+# Phase 3 - IS-IS level-2 underlay, IP unnumbered fabric links, ECMP
+
+- name: Gather Layer 2 (switchport) interfaces
+  cisco.nxos.nxos_command:
+    commands:
+      - show interface brief
+  register: intf_brief
+
+- name: Apply loopbacks, IS-IS process and fabric links
+  cisco.nxos.nxos_config:
+    src: underlay_isis.j2
+    save_when: changed
+  vars:
+    underlay_links: >-
+      {{ spine_downlinks
+         if inventory_hostname in (groups['dc1_spines'] + groups['dc2_spines'])
+         else fabric_uplinks }}
