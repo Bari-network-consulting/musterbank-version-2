@@ -100,3 +100,11 @@ test matrix. Version 3 is planned to add:
 
 Both changes remain terminated at the BGW pair (F-LEAF-05 / N-LEAF-05); the site
 boundary and Multi-Site design stay intact.
+
+## Note on the image matrix
+The 9.3(1) pair (N-LEAF-03/04) was replaced with 10.6(1) after chassis
+verification revealed 9.3(1) boots the older Nexus 9000v virtual platform
+(the 9300v/9500v generation was introduced in 9.3.3). The effective v2
+matrix is: 10.2(3) control × 1 pair, 10.4(2) × 1 pair, 10.6(1) × 2 pairs.
+The doubled 10.6(1) coverage functions as a consistency check for phase
+two's lifecycle stress testing.
