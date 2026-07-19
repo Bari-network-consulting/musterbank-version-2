@@ -2,6 +2,15 @@
 # Phase 0 - per-role feature baseline (NX-OS fabric devices ONLY;
 # server hosts are handled by the dedicated servers role/playbooks)
 
+# W12: verify/regenerate SSH RSA host key to 2048-bit BEFORE any other
+# task on this node. Note: this only protects a node that AWX can still
+# reach. If a node's host key has already regressed to the point where
+# pylibssh rejects the SSH handshake outright ("Failed to verify server
+# hostkey signature" at connection setup), this task cannot run against
+# it either - that requires out-of-band remediation (console/direct CLI)
+# first, same as the F-LEAF-01/02/03/04 fix on 19 Jul 2026.
+- import_tasks: ssh_host_key.yml
+
 - name: Check current jumbo MTU setting
   cisco.nxos.nxos_command:
     commands:

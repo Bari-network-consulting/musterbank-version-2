@@ -3,6 +3,11 @@
 # explicitly excluded at playbook level).
 # Spines carry no NVE/VTEP - their command set differs from leafs/BGWs.
 
+# W12: verify SSH RSA host key is >=2048-bit on every fabric device.
+# Runs first since a weak key blocks the SSH handshake itself - if this
+# fails, none of the checks below will have been reachable either.
+- import_tasks: ssh_host_key_check.yml
+
 - name: Collect fabric state (spines - underlay and RR only)
   cisco.nxos.nxos_command:
     commands:
@@ -10,7 +15,6 @@
       - show bgp l2vpn evpn summary
   register: fabric_state_spine
   when: inventory_hostname in groups['dc1_spines'] + groups['dc2_spines']
-
 - name: Collect fabric state (leafs and BGWs - incl. NVE)
   cisco.nxos.nxos_command:
     commands:
@@ -20,14 +24,12 @@
       - show nve vni
   register: fabric_state
   when: inventory_hostname not in groups['dc1_spines'] + groups['dc2_spines']
-
 - name: Collect vPC state (leafs only)
   cisco.nxos.nxos_command:
     commands:
       - show vpc
   register: vpc_state
   when: inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs']
-
 - name: Assert vPC peer is alive (leafs only)
   ansible.builtin.assert:
     that:
@@ -35,12 +37,10 @@
     fail_msg: "vPC peer NOT alive on {{ inventory_hostname }} - check keepalive path (E1/8 parent admin state!) and Po{{ peer_link_id }}"
     success_msg: "vPC healthy on {{ inventory_hostname }}"
   when: inventory_hostname in groups['dc1_leafs'] + groups['dc2_leafs']
-
 - name: Report fabric state (informational)
   ansible.builtin.debug:
     var: fabric_state.stdout_lines
   when: fabric_state is not skipped
-
 - name: Report spine state (informational)
   ansible.builtin.debug:
     var: fabric_state_spine.stdout_lines

@@ -1,0 +1,28 @@
+---
+# roles/validate/tasks/ssh_host_key_check.yml
+# W12: read-only check that every NX-OS fabric device presents a
+# >=2048-bit RSA host key. A weak key is otherwise invisible until an
+# AWX job fails outright with "Failed to verify server hostkey
+# signature" - this surfaces it as a normal validate-fabric finding
+# instead. No remediation here; see roles/base_features/tasks/ssh_host_key.yml.
+
+- name: W12 - Query current SSH RSA host key
+  cisco.nxos.nxos_command:
+    commands:
+      - show ssh key rsa
+  register: ssh_key_output
+
+- name: W12 - Parse RSA key bit length from device output
+  ansible.builtin.set_fact:
+    ssh_rsa_key_bits: "{{ ssh_key_output.stdout[0] | regex_search('bitcount:(\\d+)', '\\1') | first | default('0') | int }}"
+
+- name: W12 - Assert SSH RSA host key is 2048-bit or stronger
+  ansible.builtin.assert:
+    that:
+      - ssh_rsa_key_bits | int >= 2048
+    fail_msg: >-
+      SSH RSA host key on {{ inventory_hostname }} is {{ ssh_rsa_key_bits }}-bit
+      - below the 2048-bit minimum the AWX EE (pylibssh) will accept. Run
+      base_features/tasks/ssh_host_key.yml against this node, or fix
+      out-of-band if AWX can no longer reach it (W12).
+    success_msg: "SSH RSA host key OK on {{ inventory_hostname }} ({{ ssh_rsa_key_bits }}-bit)"

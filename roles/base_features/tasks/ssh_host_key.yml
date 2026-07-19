@@ -1,0 +1,72 @@
+---
+# roles/base_features/tasks/ssh_host_key.yml
+# W12: NX-OS defaults to a 1024-bit RSA host key on first boot / after image
+# reimage, which the AWX EE (pylibssh, RHEL9-generation crypto) rejects with
+# "Failed to verify server hostkey signature". This task makes the fabric
+# self-heal on every deploy by checking the current key length and only
+# regenerating when it is not already 2048-bit.
+
+- name: W12 - Query current SSH RSA host key
+  cisco.nxos.nxos_command:
+    commands:
+      - show ssh key rsa
+  register: ssh_key_output
+  changed_when: false
+
+- name: W12 - Parse RSA key bit length from device output
+  ansible.builtin.set_fact:
+    ssh_rsa_key_bits: "{{ ssh_key_output.stdout[0] | regex_search('bitcount:(\\d+)', '\\1') | first | default('0') | int }}"
+
+- name: W12 - Report current key state
+  ansible.builtin.debug:
+    msg: >-
+      {{ inventory_hostname }}: current RSA host key is
+      {{ ssh_rsa_key_bits }}-bit
+      ({{ 'OK, no action needed' if ssh_rsa_key_bits | int >= 2048
+          else 'below 2048, regeneration required' }})
+
+- name: W12 - Regenerate RSA host key at 2048 bits when below threshold
+  when: ssh_rsa_key_bits | int < 2048
+  block:
+    - name: W12 - Disable SSH feature to allow key regeneration
+      cisco.nxos.nxos_config:
+        lines:
+          - no feature ssh
+
+    - name: W12 - Generate new 2048-bit RSA host key
+      cisco.nxos.nxos_command:
+        commands:
+          - command: ssh key rsa 2048 force
+            prompt:
+              - "yes"
+            answer:
+              - "y"
+
+    - name: W12 - Re-enable SSH feature
+      cisco.nxos.nxos_config:
+        lines:
+          - feature ssh
+
+    - name: W12 - Re-query SSH RSA host key after regeneration
+      cisco.nxos.nxos_command:
+        commands:
+          - show ssh key rsa
+      register: ssh_key_output_after
+      changed_when: false
+
+    - name: W12 - Confirm new key length
+      ansible.builtin.set_fact:
+        ssh_rsa_key_bits_after: "{{ ssh_key_output_after.stdout[0] | regex_search('bitcount:(\\d+)', '\\1') | first | default('0') | int }}"
+
+    - name: W12 - Fail if regeneration did not reach 2048 bits
+      ansible.builtin.assert:
+        that:
+          - ssh_rsa_key_bits_after | int >= 2048
+        fail_msg: >-
+          {{ inventory_hostname }}: SSH RSA key regeneration did not reach
+          2048 bits (found {{ ssh_rsa_key_bits_after }}-bit). Manual
+          verification required before this node can be trusted by the
+          AWX EE.
+        success_msg: >-
+          {{ inventory_hostname }}: SSH RSA key confirmed at
+          {{ ssh_rsa_key_bits_after }}-bit.
