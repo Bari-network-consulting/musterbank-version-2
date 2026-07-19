@@ -2,3 +2,5 @@
 # Full one-command dual-DC build (fabric only; run servers-*.yml after)
 - import_playbook: deploy-dc1.yml
 - import_playbook: deploy-dc2.yml
+- import_playbook: servers-dc1.yml
+- import_playbook: servers-dc2.yml
